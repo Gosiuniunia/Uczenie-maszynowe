@@ -4,9 +4,12 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 import numpy as np
 from numpy.random import rand
+import skfuzzy as fuzz
+from xie_beni_index import xie_beni_index
 
-class VAO():
-    def __init__(self, b = 0.8, k = 5, alpha = 0.5):
+
+class VAO:
+    def __init__(self, b=0.8, k=5, alpha=0.5):
         self.b = b
         self.k = k
         self.alpha = alpha
@@ -23,17 +26,17 @@ class VAO():
         class_counts = y.value_counts()
         n_maj = class_counts[0]
         n_min = class_counts[1]
-
-        self.num_clusters = 3 #domyślnie z ciebeni score
-
+        minority_samples = x[y == 1]
+        self.num_clusters = self.count_cluster_number(minority_samples)
 
         kmeans = KMeans(n_clusters=self.num_clusters, random_state=42)
-        kmeans.fit(x)
+        kmeans.fit(minority_samples)
 
         cluster_centers = kmeans.cluster_centers_
-        samples_per_cluster = {i: x[kmeans.labels_ == i] for i in range(self.num_clusters)}
+        samples_per_cluster = [minority_samples[kmeans.labels_ == i] for i in range(self.num_clusters)]
+        print(samples_per_cluster, cluster_centers)
         majority_samples = x[y == 0]
-        
+
         L_hat = self.count_L_hat(samples_per_cluster, majority_samples)
         S_hat = self.count_S_hat(samples_per_cluster, cluster_centers)
         g = self.count_g(G, L_hat, S_hat)
@@ -44,9 +47,6 @@ class VAO():
         y = pd.concat([y, new_y], ignore_index=True)
 
         return X, y
-
-   
-            
 
     def clean_samples(self, x, y, label_to_clean):
         nneigh = NearestNeighbors(n_neighbors=self.k)
@@ -61,11 +61,25 @@ class VAO():
             maj_class_set = set(indices_maj_class)
             if indices_set.issubset(maj_class_set):
                 indices_to_remove.append(idx)
-        
+
         x_resampled = x.drop(indices_to_remove)
         y_resampled = y.drop(indices_to_remove)
-        return(x_resampled, y_resampled)
-    
+        return (x_resampled, y_resampled)
+
+    def count_cluster_number(self, X, c_min = 2, c_max = 11):
+        c_values = list(range(c_min, c_max))
+        xb_values = []
+        X_T = X.T
+
+        for c in c_values:
+            cntr, U, _, _, _, _, _ = fuzz.cluster.cmeans(
+                X_T, c, m=2, error=0.005, maxiter=1000, init=None
+            )
+            xb = xie_beni_index(X, U, cntr)
+            xb_values.append(xb)
+        best_c = c_values[np.argmin(xb_values)]
+
+        return best_c
 
     def count_L_hat(self, samples_per_cluster, majority_samples):
         xmaj = np.mean(majority_samples, axis=0)
@@ -74,15 +88,15 @@ class VAO():
             cluster_samples = samples_per_cluster[n_cluster]
             Li = np.linalg.norm(cluster_samples - xmaj, axis=1)
             Li_prim = np.mean(Li)
-            L_list.append(1/Li_prim)
+            L_list.append(1 / Li_prim)
         Li_max = max(L_list)
         Li_min = min(L_list)
         L_hat = []
         for Li_i in L_list:
-            Li_hat = (Li_i - Li_min)/(Li_max - Li_min)
+            Li_hat = (Li_i - Li_min) / (Li_max - Li_min)
             L_hat.append(Li_hat)
         return L_hat
-                
+
     def count_S_hat(self, samples_per_cluster, cluster_centers):
         S_list = []
         for i in range(self.num_clusters):
@@ -96,26 +110,25 @@ class VAO():
                 S_i = dot_product / (norm_sample * norm_Ai)
                 Si_list.append(S_i)
             Si_prim = np.mean(Si_list)
-            S_list.append(1/Si_prim)
+            S_list.append(1 / Si_prim)
 
         Si_max = max(S_list)
         Si_min = min(S_list)
         S_hat = []
         for Si_i in S_list:
-            Si_hat = (Si_i - Si_min)/(Si_max - Si_min)
+            Si_hat = (Si_i - Si_min) / (Si_max - Si_min)
             S_hat.append(Si_hat)
         return S_hat
 
     def count_g(self, G, L_hat, S_hat):
         W = [0 for i in range(self.num_clusters)]
         for i in range(self.num_clusters):
-            W[i] = self.alpha*L_hat[i] + self.beta*S_hat[i]
-        
+            W[i] = self.alpha * L_hat[i] + self.beta * S_hat[i]
+
         W_sum = sum(W)
         W_hat = [wi / W_sum for wi in W]
-        g = [G*wi_hat for wi_hat in W_hat]
+        g = [G * wi_hat for wi_hat in W_hat]
         return g
-    
 
     def generate_samples(self, samples_per_cluster, cluster_centers, g):
         new_samples = []
@@ -123,11 +136,11 @@ class VAO():
             cluster_samples = samples_per_cluster[i]
             A_i = cluster_centers[i]
             for _ in range(floor(g[i])):
-                x_ij = cluster_samples.sample(n=1).values.flatten() 
+                x_ij = cluster_samples.sample(n=1).values.flatten()
 
                 # Losowy wybór dwóch sąsiednich próbek
-                x_il = cluster_samples.sample(n=1).values.flatten() 
-                x_is = cluster_samples.sample(n=1).values.flatten() 
+                x_il = cluster_samples.sample(n=1).values.flatten()
+                x_is = cluster_samples.sample(n=1).values.flatten()
 
                 t_k_ip1 = x_ij + rand() * (x_il - x_ij)
                 t_k_ip2 = x_ij + rand() * (x_is - x_ij)
