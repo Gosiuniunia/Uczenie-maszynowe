@@ -9,8 +9,8 @@ from xie_beni_index import xie_beni_index
 
 
 class VAO:
-    def __init__(self, b=0.8, k=5, alpha=0.5):
-        self.b = b
+    def __init__(self, ratio=0.8, k=5, alpha=0.5):
+        self.ratio = ratio
         self.k = k
         self.alpha = alpha
         self.beta = 1 - alpha
@@ -19,7 +19,7 @@ class VAO:
         class_counts = y.value_counts()
         n_maj = class_counts[0]
         n_min = class_counts[1]
-        G = floor(n_maj * self.b - n_min)
+        G = floor(n_maj * self.ratio - n_min)
         print(G)
         x_resampled, y_resampled = self.clean_samples(x, y, 1)
         x, y = self.clean_samples(x_resampled, y_resampled, 0)

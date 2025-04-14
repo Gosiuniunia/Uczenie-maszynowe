@@ -2,19 +2,19 @@ import numpy as np
 from sklearn.base import clone
 
 class StrenththedAdaBoostClassifier:
-    def __init__(self, n_estimators, imbalanced_ratio, estimator):
+    def __init__(self, n_estimators, estimator):
         self.n_estimators = n_estimators
-        self.imbalanced_ratio = imbalanced_ratio
         self.estimator = estimator
         self.classifiers = []
         self.alphas = []
 
     def fit(self, X, y):
         self.N = len(X)
+        class_counts = y.value_counts()
+        self.imbalanced_ratio = class_counts.min() / class_counts.max()
         y = np.where(y == 0, -1, 1)
 
         omega = [1 / self.N for n in range(self.N)]
-        classiefiers = [self.estimator for _ in range(self.N)]
         for i in range(self.n_estimators):
             clf = clone(self.estimator)
             clf.fit(X, y, sample_weight=omega)
@@ -26,6 +26,7 @@ class StrenththedAdaBoostClassifier:
 
 
     def predict(self, X):
+        print(self.alphas)
         final_score = np.zeros(len(X))
         for alpha, clf in zip(self.alphas, self.classifiers):
             pred = clf.predict(X)
@@ -71,14 +72,11 @@ x = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
 y = pd.Series(y)
 
 # Oversampling (tu SMOTE jako VAO)
-VAO = SMOTE(random_state=42)
-X_resampled, y_resampled = VAO.fit_resample(x, y)
-
-print(y_resampled.value_counts())
-
+smote = SMOTE(random_state=42, sampling_strategy = 0.8)
+X_resampled, y_resampled = smote.fit_resample(x, y)
 # Użycie klasyfikatora
 clf = StrenththedAdaBoostClassifier(
-    n_estimators=3, imbalanced_ratio=1, estimator=DecisionTreeClassifier(max_depth=1)
+    n_estimators=30, estimator=DecisionTreeClassifier(max_depth=1)
 )
 
 clf.fit(X_resampled, y_resampled)
