@@ -20,7 +20,6 @@ class VAO:
         n_maj = class_counts[0]
         n_min = class_counts[1]
         G = floor(n_maj * self.ratio - n_min)
-        print(G)
         x_resampled, y_resampled = self.clean_samples(x, y, 1)
         x, y = self.clean_samples(x_resampled, y_resampled, 0)
         class_counts = y.value_counts()
@@ -34,7 +33,6 @@ class VAO:
 
         cluster_centers = kmeans.cluster_centers_
         samples_per_cluster = [minority_samples[kmeans.labels_ == i] for i in range(self.num_clusters)]
-        print(samples_per_cluster, cluster_centers)
         majority_samples = x[y == 0]
 
         L_hat = self.count_L_hat(samples_per_cluster, majority_samples)
