@@ -22,7 +22,7 @@ vao = VAO()
 X_resampled, y_resampled = vao.fit_resample(x, y)
 # Użycie klasyfikatora
 clf = StrengthenedAdaBoostClassifier(
-    n_estimators=100, estimator=DecisionTreeClassifier(max_depth=2)
+    n_estimators=100, estimator=DecisionTreeClassifier(max_depth=1), learning_rate = 1
 )
 
 clf.fit(X_resampled, y_resampled)

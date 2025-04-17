@@ -2,9 +2,10 @@ import numpy as np
 from sklearn.base import clone
 
 class StrengthenedAdaBoostClassifier:
-    def __init__(self, n_estimators, estimator):
+    def __init__(self, n_estimators, estimator, learning_rate = 1.0):
         self.n_estimators = n_estimators
         self.estimator = estimator
+        self.learning_rate = learning_rate
         self.classifiers = []
         self.alphas = []
 
@@ -25,7 +26,7 @@ class StrengthenedAdaBoostClassifier:
             y_pred = clf.predict(X)
             alpha_m = self._count_alpha_value(y_pred, y, omega)
             self.classifiers.append(clf)
-            self.alphas.append(alpha_m)
+            self.alphas.append(self.learning_rate*alpha_m)
             omega = self._upadate_weights(omega, alpha_m, y, y_pred)
 
 
