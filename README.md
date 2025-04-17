@@ -1,10 +1,10 @@
 # pcos-classification-comparative-studies
 
-## 📌 Description
+## Description
 
 This repository provides a comparative analysis between **Scikit-learn ensemble classifiers** and **custom-built classification algorithms** implemented from scratch. All models are trained and evaluated on the same dataset to ensure a fair and consistent performance comparison.
 
-## 🧪 Experiments
+## Experiments
 
 The experiments are conducted on a real-world medical dataset related to PCOS (Polycystic Ovary Syndrome), sourced from Kaggle.
 
