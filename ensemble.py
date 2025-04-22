@@ -11,7 +11,7 @@ class StrengthenedAdaBoostClassifier:
 
     def fit(self, X, y):
         self.N = len(X)
-        self.k = 1
+        self.k = 0.1
         self.theta = 1
 
         class_counts = y.value_counts()

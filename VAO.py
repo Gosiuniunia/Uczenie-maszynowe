@@ -20,6 +20,7 @@ class VAO:
         y = pd.Series(y).reset_index(drop=True)
         x = pd.DataFrame(x).reset_index(drop=True)
         class_counts = y.value_counts()
+        reverse = False
         if class_counts.idxmin() == 0:
             y = y.map({0: 1, 1: 0})
             class_counts = y.value_counts()

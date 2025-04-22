@@ -9,15 +9,15 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, RandomForestClassifier
 from ensemble import StrengthenedAdaBoostClassifier
 from xgboost import XGBClassifier
+from preprocessing import preprocess_data
 
 from SWSEL import SWSEL
 from ensemble import StrengthenedAdaBoostClassifier
 from VAO import VAO
 
 
-X, y = load_breast_cancer(return_X_y=True)
-y = pd.Series(y)
-class_counts = y.value_counts()
+file_path = "PCOS_data_without_infertility.xlsx"
+X, y = preprocess_data(file_path)
 rskf = RepeatedStratifiedKFold(n_repeats=5, n_splits=2, random_state=100)
 
 def apply_oversampling(method, X_train, y_train, alpha = None):
@@ -137,7 +137,7 @@ def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, o
 
 def run_tuning():
     # M_list = [25, 50, 75, 100]
-    M_list = [10]
+    M_list = [50]
     lr_list = [1]
     # lr_list = [0.1, 0.5, 1, 10]
     alpha_list=[0.1 * i for i in range(1, 2)]
