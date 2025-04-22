@@ -7,19 +7,26 @@ from numpy.random import rand
 import skfuzzy as fuzz
 from xie_beni_index import xie_beni_index
 
+np.random.seed(100)
 
 class VAO:
-    def __init__(self, ratio=0.8, k=5, alpha=0.5):
-        self.ratio = ratio
+    def __init__(self, sampling_strategy=0.8, k=5, alpha=0.5):
+        self.sampling_strategy = sampling_strategy
         self.k = k
         self.alpha = alpha
         self.beta = 1 - alpha
 
     def fit_resample(self, x, y):
+        y = pd.Series(y).reset_index(drop=True)
+        x = pd.DataFrame(x).reset_index(drop=True)
         class_counts = y.value_counts()
+        if class_counts.idxmin() == 0:
+            y = y.map({0: 1, 1: 0})
+            class_counts = y.value_counts()
+            reverse = True
         n_maj = class_counts[0]
         n_min = class_counts[1]
-        G = floor(n_maj * self.ratio - n_min)
+        G = floor(n_maj * self.sampling_strategy - n_min)
         x_resampled, y_resampled = self.clean_samples(x, y, 1)
         x, y = self.clean_samples(x_resampled, y_resampled, 0)
         class_counts = y.value_counts()
@@ -43,7 +50,8 @@ class VAO:
         X = pd.concat([x, new_x_df], ignore_index=True)
         new_y = pd.Series([1] * len(new_x))
         y = pd.concat([y, new_y], ignore_index=True)
-
+        if reverse == True:
+            y = y.map({1: 0, 0: 1})
         return X, y
 
     def clean_samples(self, x, y, label_to_clean):
