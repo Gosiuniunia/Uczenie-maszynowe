@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score
+from imblearn.metrics import geometric_mean_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from imblearn.over_sampling import SMOTE, ADASYN, RandomOverSampler
 from sklearn.datasets import load_breast_cancer
@@ -46,7 +47,10 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
 
             clf.fit(X_res, y_res)
             y_pred = clf.predict(X_test)
-            acc = accuracy_score(y_test, y_pred)
+            precision = precision_score(y_test, y_pred)
+            recall = recall_score(y_test, y_pred)
+            f1 = f1_score(y_test, y_pred)
+            g_mean = geometric_mean_score(y_test, y_pred)
 
             results.append({
                 'method': method_name,
@@ -55,7 +59,10 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
                 'alpha': None,
                 'beta': None,
                 'fold': fold_idx,
-                'accuracy': acc
+                'Precision': precision,
+                'Recall': recall,
+                'F1 Score': f1,
+                'G-Mean': g_mean
             })
     return results
 
@@ -74,7 +81,10 @@ def tune_M_lr(method_name, classifier_name, M_list, lr_list, oversampling_type=N
 
                 clf.fit(X_res, y_res)
                 y_pred = clf.predict(X_test)
-                acc = accuracy_score(y_test, y_pred)
+                precision = precision_score(y_test, y_pred)
+                recall = recall_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+                g_mean = geometric_mean_score(y_test, y_pred)
 
                 results.append({
                     'method': method_name,
@@ -83,7 +93,10 @@ def tune_M_lr(method_name, classifier_name, M_list, lr_list, oversampling_type=N
                     'alpha': None,
                     'beta': None,
                     'fold': fold_idx,
-                    'accuracy': acc
+                    'Precision': precision,
+                    'Recall': recall,
+                    'F1 Score': f1,
+                    'G-Mean': g_mean
                 })
     return results
 
@@ -101,8 +114,11 @@ def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, o
 
                     clf.fit(X_res, y_res)
                     y_pred = clf.predict(X_test)
-                    acc = accuracy_score(y_test, y_pred)
-                    print(f"lr {lr}")
+                    precision = precision_score(y_test, y_pred)
+                    recall = recall_score(y_test, y_pred)
+                    f1 = f1_score(y_test, y_pred)
+                    g_mean = geometric_mean_score(y_test, y_pred)
+
                     results.append({
                         'method': method_name,
                         'M': M,
@@ -110,7 +126,10 @@ def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, o
                         'alpha': alpha,
                         'beta': beta,
                         'fold': fold_idx,
-                        'accuracy': acc
+                        'Precision': precision,
+                        'Recall': recall,
+                        'F1 Score': f1,
+                        'G-Mean': g_mean
                     })
     return results
 
@@ -119,7 +138,8 @@ def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, o
 def run_tuning():
     # M_list = [25, 50, 75, 100]
     M_list = [10]
-    lr_list = [0.1, 0.5, 1, 10]
+    lr_list = [1]
+    # lr_list = [0.1, 0.5, 1, 10]
     alpha_list=[0.1 * i for i in range(1, 2)]
     # alpha_list=[0.1 * i for i in range(1, 10)]
     # ================================
