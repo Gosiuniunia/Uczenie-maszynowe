@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import itertools
 from sklearn.metrics import precision_score, recall_score, f1_score
 from imblearn.metrics import geometric_mean_score
 from sklearn.model_selection import RepeatedStratifiedKFold
@@ -34,8 +35,15 @@ def apply_oversampling(method, X_train, y_train, alpha = None):
     return sampler.fit_resample(X_train, y_train)
 
 def tune_single_param(method_name, classifier_name, M_list, oversampling_type=None):
-    results = []
-    for M in M_list:
+    n_folds = rskf.get_n_splits()
+    n_params = len(M_list)
+    
+    precisions = np.zeros((n_params, n_folds))
+    recalls = np.zeros_like(precisions)
+    f1s = np.zeros_like(precisions)
+    gmeans = np.zeros_like(precisions)
+
+    for param_idx, M in enumerate(M_list):
         if classifier_name in [SWSEL, BaggingClassifier]:
             clf = classifier_name(estimator=DecisionTreeClassifier(max_depth=1), n_estimators=M)
         else:
@@ -47,96 +55,83 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
 
             clf.fit(X_res, y_res)
             y_pred = clf.predict(X_test)
-            precision = precision_score(y_test, y_pred)
-            recall = recall_score(y_test, y_pred)
-            f1 = f1_score(y_test, y_pred)
-            g_mean = geometric_mean_score(y_test, y_pred)
 
-            results.append({
-                'method': method_name,
-                'M': M,
-                'lr': None,
-                'alpha': None,
-                'beta': None,
-                'fold': fold_idx,
-                'Precision': precision,
-                'Recall': recall,
-                'F1 Score': f1,
-                'G-Mean': g_mean
-            })
-    return results
+            precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
+            recalls[param_idx, fold_idx] = recall_score(y_test, y_pred)
+            f1s[param_idx, fold_idx] = f1_score(y_test, y_pred)
+            gmeans[param_idx, fold_idx] = geometric_mean_score(y_test, y_pred)
+
+    np.save(f"{method_name.lower()}_precision.npy", precisions)
+    np.save(f"{method_name.lower()}_recall.npy", recalls)
+    np.save(f"{method_name.lower()}_f1_score.npy", f1s)
+    np.save(f"{method_name.lower()}_g-mean.npy", gmeans)
 
 def tune_M_lr(method_name, classifier_name, M_list, lr_list, oversampling_type=None):
-    results = []
-    for M in M_list:
-        for lr in lr_list:
-            if classifier_name in [AdaBoostClassifier]:
-                clf = classifier_name(estimator = DecisionTreeClassifier(max_depth=1), n_estimators = M, learning_rate = lr, algorithm="SAMME")
-            else:
-                clf = XGBClassifier(n_estimators=M, learning_rate=lr,  max_depth=1)
-            for fold_idx, (train_idx, test_idx) in enumerate(rskf.split(X, y)):
-                X_train, y_train = X[train_idx], y[train_idx]
-                X_test, y_test = X[test_idx], y[test_idx]
-                X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
+    n_folds = rskf.get_n_splits()
+    n_params = len(M_list) * len(lr_list)
 
-                clf.fit(X_res, y_res)
-                y_pred = clf.predict(X_test)
-                precision = precision_score(y_test, y_pred)
-                recall = recall_score(y_test, y_pred)
-                f1 = f1_score(y_test, y_pred)
-                g_mean = geometric_mean_score(y_test, y_pred)
+    precisions = np.zeros((n_params, n_folds))
+    recalls = np.zeros_like(precisions)
+    f1s = np.zeros_like(precisions)
+    gmeans = np.zeros_like(precisions)
 
-                results.append({
-                    'method': method_name,
-                    'M': M,
-                    'lr': lr,
-                    'alpha': None,
-                    'beta': None,
-                    'fold': fold_idx,
-                    'Precision': precision,
-                    'Recall': recall,
-                    'F1 Score': f1,
-                    'G-Mean': g_mean
-                })
-    return results
+    for param_idx, (M, lr) in enumerate(itertools.product(M_list, lr_list)):
+        if classifier_name in [AdaBoostClassifier]:
+            clf = classifier_name(estimator = DecisionTreeClassifier(max_depth=1), n_estimators = M, learning_rate = lr, algorithm="SAMME")
+        else:
+            clf = XGBClassifier(n_estimators=M, learning_rate=lr,  max_depth=1)
+        
+        for fold_idx, (train_idx, test_idx) in enumerate(rskf.split(X, y)):
+            X_train, y_train = X[train_idx], y[train_idx]
+            X_test, y_test = X[test_idx], y[test_idx]
+            X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
+
+            clf.fit(X_res, y_res)
+            y_pred = clf.predict(X_test)
+
+            precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
+            recalls[param_idx, fold_idx] = recall_score(y_test, y_pred)
+            f1s[param_idx, fold_idx] = f1_score(y_test, y_pred)
+            gmeans[param_idx, fold_idx] = geometric_mean_score(y_test, y_pred)
+
+    np.save(f"{method_name.lower()}_precision.npy", precisions)
+    np.save(f"{method_name.lower()}_recall.npy", recalls)
+    np.save(f"{method_name.lower()}_f1_score.npy", f1s)
+    np.save(f"{method_name.lower()}_g-mean.npy", gmeans)
 
 def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, oversampling_type=None):
-    results = []
-    for M in M_list:
-        for lr in lr_list:
-            for alpha in alpha_list:
-                beta = 1 - alpha
-                clf = classifier_name(estimator = DecisionTreeClassifier(max_depth=1), n_estimators = M, learning_rate = lr)
-                for fold_idx, (train_idx, test_idx) in enumerate(rskf.split(X, y)):
-                    X_train, y_train = X[train_idx], y[train_idx]
-                    X_test, y_test = X[test_idx], y[test_idx]
-                    X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train, alpha)
+    n_folds = rskf.get_n_splits()
+    n_params = len(M_list) * len(lr_list) * len(alpha_list)
 
-                    clf.fit(X_res, y_res)
-                    y_pred = clf.predict(X_test)
-                    precision = precision_score(y_test, y_pred)
-                    recall = recall_score(y_test, y_pred)
-                    f1 = f1_score(y_test, y_pred)
-                    g_mean = geometric_mean_score(y_test, y_pred)
+    precisions = np.zeros((1, n_params, n_folds))
+    recalls = np.zeros_like(precisions)
+    f1s = np.zeros_like(precisions)
+    gmeans = np.zeros_like(precisions)
 
-                    results.append({
-                        'method': method_name,
-                        'M': M,
-                        'lr': lr,
-                        'alpha': alpha,
-                        'beta': beta,
-                        'fold': fold_idx,
-                        'Precision': precision,
-                        'Recall': recall,
-                        'F1 Score': f1,
-                        'G-Mean': g_mean
-                    })
-    return results
+    for param_idx, (M, lr, alpha) in enumerate(itertools.product(M_list, lr_list, alpha_list)):
+        clf = classifier_name(estimator = DecisionTreeClassifier(max_depth=1), n_estimators = M, learning_rate = lr)
+        for fold_idx, (train_idx, test_idx) in enumerate(rskf.split(X, y)):
+            X_train, y_train = X[train_idx], y[train_idx]
+            X_test, y_test = X[test_idx], y[test_idx]
+            X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train, alpha)
+
+            clf.fit(X_res, y_res)
+            y_pred = clf.predict(X_test)
+
+            precisions[0, param_idx, fold_idx] = precision_score(y_test, y_pred)
+            recalls[0, param_idx, fold_idx] = recall_score(y_test, y_pred)
+            f1s[0, param_idx, fold_idx] = f1_score(y_test, y_pred)
+            gmeans[0, param_idx, fold_idx] = geometric_mean_score(y_test, y_pred)
+
+    np.save(f"{method_name.lower()}_precision.npy", precisions)
+    np.save(f"{method_name.lower()}_recall.npy", recalls)
+    np.save(f"{method_name.lower()}_f1_score.npy", f1s)
+    np.save(f"{method_name.lower()}_g-mean.npy", gmeans)
 
 
 
 def run_tuning():
-    # M_list = [25, 50, 75, 100]
+    # M_list = [25, 575, 100]
     M_list = [50]
     lr_list = [1]
     # lr_list = [0.1, 0.5, 1, 10]
@@ -148,37 +143,27 @@ def run_tuning():
     
     # ================================
     # 1.2 SMRF (SMOTE + Random Forest, tylko M)
-    smrf_results = tune_single_param("SMRF", RandomForestClassifier, M_list, oversampling_type="SMOTE")
+    tune_single_param("SMRF", RandomForestClassifier, M_list, oversampling_type="SMOTE")
     
     # ================================
     # # 1.3 SMB (SMOTE + Bagging, tylko M)
-    smb_results = tune_single_param("SMB", BaggingClassifier, M_list, oversampling_type="SMOTE")
+    tune_single_param("SMB", BaggingClassifier, M_list, oversampling_type="SMOTE")
     
     # # ================================
     # # 1.4 SMAB (SMOTE + AdaBoost, M i lr)
-    smab_results = tune_M_lr("SMAB", AdaBoostClassifier, M_list, lr_list, oversampling_type="SMOTE")
+    tune_M_lr("SMAB", AdaBoostClassifier, M_list, lr_list, oversampling_type="SMOTE")
     
     # # ================================
     # # 1.5 RUSAB (RUS + AdaBoost, M i lr)
-    rusab_results = tune_M_lr("RUSAB", AdaBoostClassifier, M_list, lr_list, oversampling_type="RUS")
+    tune_M_lr("RUSAB", AdaBoostClassifier, M_list, lr_list, oversampling_type="RUS")
 
     # # ================================
     # # 1.6 ADXG (ADASYN + XGBoost, M i lr)
-    adxg_results = tune_M_lr("ADXG", XGBClassifier, M_list, lr_list, oversampling_type="ADASYN")
+    tune_M_lr("ADXG", XGBClassifier, M_list, lr_list, oversampling_type="ADASYN")
     
     # # ================================
     # # 1.7 VASA (VAO + AdaBoost, M, lr i alpha)
-    vasa_results = tune_M_lr_alpha("VASA", StrengthenedAdaBoostClassifier, M_list, lr_list, alpha_list, oversampling_type="VAO")
-    
-    # ================================
-    # Zbieranie wszystkich wyników
-    all_results = smrf_results + smb_results + smab_results + rusab_results + adxg_results + vasa_results
-    # swe_results
-    
-    # Przechowywanie wyników w pliku CSV
-    df = pd.DataFrame(all_results)
-    df.to_csv("gridsearch_results.csv", index=False)
-    return df
+    tune_M_lr_alpha("VASA", StrengthenedAdaBoostClassifier, M_list, lr_list, alpha_list, oversampling_type="VAO")
 
 
 run_tuning()
