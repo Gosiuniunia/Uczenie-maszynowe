@@ -11,8 +11,8 @@ class StrengthenedAdaBoostClassifier:
 
     def fit(self, X, y):
         self.N = len(X)
-        self.k = 0.1
-        self.theta = 1
+        self.k = 0.2
+        self.theta = 0.5
 
         class_counts = y.value_counts()
         imbalanced_ratio = class_counts.min() / class_counts.max()
@@ -45,6 +45,7 @@ class StrengthenedAdaBoostClassifier:
         delta_m = P_m / Q_m
         value = 0.5*(1 - (2 * delta_m)/(self.b + 1))
         if epsilon_m < value:
+            print(self.k)
             term1 = 0.5 * np.log((1 - epsilon_m) / epsilon_m)
             term2 = self.k * (1 - np.exp(1 - self.b)) * np.exp(self.theta * (2 * delta_m - 1))
             return term1 + term2
