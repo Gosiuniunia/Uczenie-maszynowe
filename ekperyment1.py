@@ -53,7 +53,40 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
             X_test, y_test = X[test_idx], y[test_idx]
             X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
 
-            clf.fit(X_res, y_res)
+            if method_name == "SWSEL":
+                clf.fit(X_res, y_res, X_test)
+            else:
+                clf.fit(X_res, y_res)
+            y_pred = clf.predict(X_test)
+
+            precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
+            recalls[param_idx, fold_idx] = recall_score(y_test, y_pred)
+            f1s[param_idx, fold_idx] = f1_score(y_test, y_pred)
+            gmeans[param_idx, fold_idx] = geometric_mean_score(y_test, y_pred)
+
+    np.save(f"{method_name.lower()}_precision.npy", precisions)
+    np.save(f"{method_name.lower()}_recall.npy", recalls)
+    np.save(f"{method_name.lower()}_f1_score.npy", f1s)
+    np.save(f"{method_name.lower()}_g-mean.npy", gmeans)
+
+def tune_M_st(method_name, classifier_name, M_list, step_list, oversampling_type=None):
+    n_folds = rskf.get_n_splits()
+    n_params = len(M_list) * len(step_list)
+
+    precisions = np.zeros((n_params, n_folds))
+    recalls = np.zeros_like(precisions)
+    f1s = np.zeros_like(precisions)
+    gmeans = np.zeros_like(precisions)
+
+    for param_idx, (M, st) in enumerate(itertools.product(M_list, step_list)):
+        clf = classifier_name(estimator = DecisionTreeClassifier(max_depth=1), n_estimators = M, step_size = st)
+        
+        for fold_idx, (train_idx, test_idx) in enumerate(rskf.split(X, y)):
+            X_train, y_train = X[train_idx], y[train_idx]
+            X_test, y_test = X[test_idx], y[test_idx]
+            X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
+
+            clf.fit(X_res, y_res, X_test)
             y_pred = clf.predict(X_test)
 
             precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
@@ -137,9 +170,11 @@ def run_tuning():
     # lr_list = [0.1, 0.5, 1, 10]
     alpha_list=[0.1 * i for i in range(1, 2)]
     # alpha_list=[0.1 * i for i in range(1, 10)]
+    step_list = [1]
+    # step_list = [1, 2, 3, 4, 5]
     # ================================
-    # 1.1 SWESEL (Bez samplingu, tylko M)
-    # swe_results = tune_single_param("SWSEL", SWSEL, M_list, oversampling_type=None)
+    # 1.1 SWESEL (Bez samplingu, M i step size)
+    tune_M_st("SWSEL", SWSEL, M_list, step_list, oversampling_type=None)
     
     # ================================
     # 1.2 SMRF (SMOTE + Random Forest, tylko M)

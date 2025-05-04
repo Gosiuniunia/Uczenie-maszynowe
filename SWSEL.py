@@ -1,19 +1,14 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
-# from sklearn.svm import SVC 
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, precision_score
-
-from preprocessing import preprocess_data
 
 class SWSEL:
-    def __init__(self, base_classifier, step_size, n_classifiers):
+    def __init__(self, estimator, n_estimators, step_size=1):
 
-        self.base_classifier = base_classifier
+        self.estimator = estimator
         self.step_size = step_size
-        self.n_classifiers = n_classifiers
+        self.n_estimators = n_estimators
         self.x_datasets = []
         self.classifiers = []
+        self.chosen_classifiers = []
 
     def generate_majority_pseudo_sequence(self, X_maj):
         
@@ -210,13 +205,13 @@ class SWSEL:
             X_maj, X_min = self.x_datasets[i][0], self.x_datasets[i][1]
             X = np.vstack([X_maj, X_min])
             Y = np.concatenate([np.zeros(len(X_maj), dtype=int), np.ones(len(X_min), dtype=int)])
-            classifier = self.base_classifier
+            classifier = self.estimator
             classifier.fit(X, Y)
             self.classifiers.append(classifier)
 
     def select_classifiers(self, X_test):
 
-        if len(self.classifiers) <= self.n_classifiers:
+        if len(self.classifiers) <= self.n_estimators:
             return self.classifiers
 
         mean_test = np.mean(X_test, axis=0)
@@ -228,34 +223,22 @@ class SWSEL:
 
         sorted_indices = np.argsort(mean_dis)
         chosen_classifiers = np.array(self.classifiers)[sorted_indices]
-        return chosen_classifiers[:self.n_classifiers]
-
-    def fit_and_predict(self, X_train, Y_train, X_test):
-
+        return chosen_classifiers[:self.n_estimators]
+    
+    def fit(self, X_train, Y_train, X_test):
         X_maj = X_train[Y_train == 0]
         X_min = X_train[Y_train == 1]
 
         self.generate_datasets(X_maj, X_min)
         self.generate_base_classifiers()
-        chosen_classifiers = self.select_classifiers(X_test)
-        predictions = np.array([clf.predict(X_test) for clf in chosen_classifiers])
+        self.chosen_classifiers = self.select_classifiers(X_test)
+
+    def predict(self, X_test):
+        predictions = np.array([clf.predict(X_test) for clf in self.chosen_classifiers])
         majority_vote = np.round(predictions.mean(axis=0))
 
         return majority_vote
 
-#testy
-file_path = "C:/Users/Lenovo/Desktop/PCOS_data_without_infertility.xlsx"
-X, y = preprocess_data(file_path)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=5)
-
-X_maj = X_train[y_train == 0]
-X_min = X_train[y_train == 1]
-
-swsel_model = SWSEL(base_classifier=DecisionTreeClassifier(max_depth=3), step_size=7, n_classifiers=75)
-y_predict = swsel_model.fit_and_predict(X_train, y_train, X_test)
-print(accuracy_score(y_test, y_predict))
-print(precision_score(y_test, y_predict))
 
 # initial pos > 173 - błąd
 # initial pos < 113 - okej
