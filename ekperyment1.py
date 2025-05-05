@@ -53,10 +53,7 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
             X_test, y_test = X[test_idx], y[test_idx]
             X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
 
-            if method_name == "SWSEL":
-                clf.fit(X_res, y_res, X_test)
-            else:
-                clf.fit(X_res, y_res)
+            clf.fit(X_res, y_res)
             y_pred = clf.predict(X_test)
 
             precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
@@ -86,7 +83,7 @@ def tune_M_st(method_name, classifier_name, M_list, step_list, oversampling_type
             X_test, y_test = X[test_idx], y[test_idx]
             X_res, y_res = apply_oversampling(oversampling_type, X_train, y_train)
 
-            clf.fit(X_res, y_res, X_test)
+            clf.fit(X_res, y_res)
             y_pred = clf.predict(X_test)
 
             precisions[param_idx, fold_idx] = precision_score(y_test, y_pred)
@@ -174,7 +171,7 @@ def run_tuning():
     # step_list = [1, 2, 3, 4, 5]
     # ================================
     # 1.1 SWESEL (Bez samplingu, M i step size)
-    tune_M_st("SWSEL", SWSEL, M_list, step_list, oversampling_type=None)
+    tune_single_param("SWSEL", SWSEL, M_list, oversampling_type=None)
     
     # ================================
     # 1.2 SMRF (SMOTE + Random Forest, tylko M)

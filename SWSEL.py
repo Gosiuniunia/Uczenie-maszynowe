@@ -225,15 +225,15 @@ class SWSEL:
         chosen_classifiers = np.array(self.classifiers)[sorted_indices]
         return chosen_classifiers[:self.n_estimators]
     
-    def fit(self, X_train, Y_train, X_test):
+    def fit(self, X_train, Y_train):
         X_maj = X_train[Y_train == 0]
         X_min = X_train[Y_train == 1]
 
         self.generate_datasets(X_maj, X_min)
         self.generate_base_classifiers()
-        self.chosen_classifiers = self.select_classifiers(X_test)
 
     def predict(self, X_test):
+        self.chosen_classifiers = self.select_classifiers(X_test)
         predictions = np.array([clf.predict(X_test) for clf in self.chosen_classifiers])
         majority_vote = np.round(predictions.mean(axis=0))
 
