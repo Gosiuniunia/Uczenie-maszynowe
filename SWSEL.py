@@ -34,28 +34,32 @@ class SWSEL:
             n_samples = window_size / 2
 
             if (start_idx + 1 > len(majority_pseudo_sequence) / 2):
-                if (len(majority_pseudo_sequence) - start_idx - 1 < n_samples):
-                    while (start_idx_temp - n_samples + 1 >= 0):
+                "punkt początkowy jest za połową sekwencji"
+                if (len(majority_pseudo_sequence) - start_idx < n_samples):
+                    "punkt początkowy jest bliżej końca niż wielkość połowy okna"
+                    while (start_idx_temp - n_samples >= 0):
+                        "dopóki możemy się przesuwać w lewo"
                         dataset = []
-                        if (len(majority_pseudo_sequence) - start_idx_temp - 1 <= n_samples):
-                            a_idx = (start_idx_temp - n_samples).astype(int)
+                        if (len(majority_pseudo_sequence) - start_idx_temp <= n_samples):
+                            "przesuwamy się do momentu aż liczba instancji po prawej będzie większa równa wielkości X_min"
+                            print('a0', start_idx_temp - n_samples)
                             dataset.append(X_maj[a_idx:])
                             dataset.append(X_min)
                             start_idx_temp -= self.step_size
                             self.x_datasets.append(dataset)
                         
                         else:
-                            if (start_idx_temp - n_samples + 1 >= 0):
-                                a_idx = (start_idx_temp - n_samples).astype(int)
-                                b_idx = (start_idx_temp + n_samples).astype(int)
-                                dataset.append(X_maj[a_idx:b_idx])
-                                dataset.append(X_min)
-                                start_idx_temp -= self.step_size
-                                self.x_datasets.append(dataset)
+                            a_idx = (start_idx_temp - n_samples).astype(int)
+                            b_idx = (start_idx_temp + n_samples).astype(int)
+                            dataset.append(X_maj[a_idx:b_idx])
+                            dataset.append(X_min)
+                            start_idx_temp -= self.step_size
+                            self.x_datasets.append(dataset)
                 
                 else:
                     cal_dis = len(majority_pseudo_sequence) - start_idx_temp - n_samples
                     while (cal_dis >= 0):
+                        "przesuwamy się w prawo do końca dopóki odl jest równa połowie wielkości okna"
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
                         b_idx = (start_idx_temp + n_samples).astype(int)
@@ -65,63 +69,72 @@ class SWSEL:
                         cal_dis -= self.step_size
                         self.x_datasets.append(dataset)
                     start_idx_temp = start_idx
-                    while (start_idx_temp - n_samples + 1 >= 0):
+                    "cofamy się do pozycji początkowej"
+                    while (start_idx_temp - n_samples >= 0):
+                        "przesuwamy się w lewo do końca jeśli krok pozwoli"
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
-                        b_idx = (start_idx_temp + n_samples + 1).astype(int)
+                        b_idx = (start_idx_temp + n_samples).astype(int)
                         dataset.append(X_maj[a_idx:b_idx])
                         dataset.append(X_min)
                         start_idx_temp -= self.step_size
                         self.x_datasets.append(dataset)
 
             else:
+                "jesli punkt początkowy jest na 1 połowie"
                 if (start_idx + 1 < n_samples):
-                    while (start_idx_temp + 1 + n_samples <= len(majority_pseudo_sequence)):
+                    "jesli po lewo jest mniej niż połowa okna"
+                    while (start_idx_temp + n_samples <= len(majority_pseudo_sequence)):
+                        "dopóki można się przesuwać w prawo"
                         dataset = []
                         if (start_idx_temp + 1 <= n_samples):
-                            a_idx = (start_idx_temp + n_samples + 1).astype(int)
+                            "tworzenie danych z początku datasetu do momentu aż wielkość od początku będzie równa wielkości okna"
+                            a_idx = (start_idx_temp + n_samples).astype(int)
                             dataset.append(X_maj[:a_idx])
                             dataset.append(X_min)
                             start_idx_temp += self.step_size
                             self.x_datasets.append(dataset)
                         
                         else:
-                            if (start_idx_temp + 1 <= len(majority_pseudo_sequence)):
-                                a_idx = (start_idx_temp - n_samples).astype(int)
-                                b_idx = (start_idx_temp + n_samples + 1).astype(int)
-                                dataset.append(X_maj[a_idx:b_idx])
-                                dataset.append(X_min)
-                                start_idx_temp += self.step_size
-                                self.x_datasets.append(dataset)
+                            "tworzenie danych do końca datasetu"
+                            a_idx = (start_idx_temp - n_samples).astype(int)
+                            b_idx = (start_idx_temp + n_samples).astype(int)
+                            print('ab3', start_idx_temp - n_samples, start_idx_temp + n_samples)
+                            dataset.append(X_maj[a_idx:b_idx])
+                            print(len(X_maj[a_idx:b_idx]))
+                            dataset.append(X_min)
+                            start_idx_temp += self.step_size
+                            self.x_datasets.append(dataset)
                 
                 else:
-                    cal_dis = start_idx_temp + 1 - n_samples
+                    cal_dis = start_idx_temp - n_samples
                     while (cal_dis >= 0):
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
-                        b_idx = (start_idx_temp + n_samples + 1).astype(int)
+                        b_idx = (start_idx_temp + n_samples).astype(int)
                         dataset.append(X_maj[a_idx:b_idx])
                         dataset.append(X_min)
                         start_idx_temp -= self.step_size
                         cal_dis -= self.step_size
                         self.x_datasets.append(dataset)
                     start_idx_temp = start_idx
-                    while (start_idx_temp + n_samples + 1 <= len(majority_pseudo_sequence)):
+                    while (start_idx_temp + n_samples <= len(majority_pseudo_sequence)):
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
-                        b_idx = (start_idx_temp + n_samples + 1).astype(int)
+                        b_idx = (start_idx_temp + n_samples).astype(int)
                         dataset.append(X_maj[a_idx:b_idx])
                         dataset.append(X_min)
                         start_idx_temp += self.step_size
                         self.x_datasets.append(dataset)
         else:
+            "analogicznie dla nieparzystej liczby danych"
             n_samples = (window_size - 1) / 2
 
-            if (start_idx + 1 > len(majority_pseudo_sequence) / 2):
+            if (start_idx > len(majority_pseudo_sequence) / 2):
                 if (len(majority_pseudo_sequence) - start_idx - 1 < n_samples):
-                    while (start_idx_temp - n_samples + 1 >= 0):
+                    while (start_idx_temp - n_samples >= 0):
                         dataset = []
-                        if (len(majority_pseudo_sequence) - start_idx_temp - 1 <= n_samples):
+                        if (len(majority_pseudo_sequence) - start_idx_temp <= n_samples):
                             a_idx = (start_idx_temp - n_samples).astype(int)
                             dataset.append(X_maj[a_idx:]) 
                             dataset.append(X_min)
@@ -129,13 +142,12 @@ class SWSEL:
                             self.x_datasets.append(dataset)
                         
                         else:
-                            if (start_idx_temp - n_samples + 1 >= 0):
-                                a_idx = (start_idx_temp - n_samples).astype(int)
-                                b_idx = (start_idx_temp + n_samples + 1).astype(int)
-                                dataset.append(X_maj[a_idx:b_idx])
-                                dataset.append(X_min)
-                                start_idx_temp -= self.step_size
-                                self.x_datasets.append(dataset)
+                            a_idx = (start_idx_temp - n_samples).astype(int)
+                            b_idx = (start_idx_temp + n_samples + 1).astype(int)
+                            dataset.append(X_maj[a_idx:b_idx])
+                            dataset.append(X_min)
+                            start_idx_temp -= self.step_size
+                            self.x_datasets.append(dataset)
                 
                 else:
                     cal_dis = len(majority_pseudo_sequence) - start_idx_temp - n_samples - 1
@@ -149,7 +161,7 @@ class SWSEL:
                         cal_dis -= self.step_size
                         self.x_datasets.append(dataset)
                     start_idx_temp = start_idx
-                    while (start_idx_temp - n_samples + 1 >= 0):
+                    while (start_idx_temp - n_samples >= 0):
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
                         b_idx = (start_idx_temp + n_samples + 1).astype(int)
@@ -160,26 +172,25 @@ class SWSEL:
 
             else:
                 if (start_idx + 1 < n_samples):
-                    while (start_idx_temp + 1 + n_samples <= len(majority_pseudo_sequence)):
+                    while (start_idx_temp + n_samples <= len(majority_pseudo_sequence)):
                         dataset = []
-                        if (start_idx_temp + 1 <= n_samples):
-                            a_idx = (start_idx_temp + n_samples + 1).astype(int)
+                        if (start_idx_temp <= n_samples):
+                            a_idx = (start_idx_temp + n_samples).astype(int)
                             dataset.append(X_maj[:a_idx])
                             dataset.append(X_min)
                             start_idx_temp += self.step_size
                             self.x_datasets.append(dataset)
                         
                         else:
-                            if (start_idx_temp + 1 <= len(majority_pseudo_sequence)):
-                                a_idx = (start_idx_temp - n_samples).astype(int)
-                                b_idx = (start_idx_temp + n_samples + 1).astype(int)
-                                dataset.append(X_maj[a_idx:b_idx])
-                                dataset.append(X_min)
-                                start_idx_temp += self.step_size
-                                self.x_datasets.append(dataset)
+                            a_idx = (start_idx_temp - n_samples - 1).astype(int)
+                            b_idx = (start_idx_temp + n_samples).astype(int)
+                            dataset.append(X_maj[a_idx:b_idx])
+                            dataset.append(X_min)
+                            start_idx_temp += self.step_size
+                            self.x_datasets.append(dataset)
                 
                 else:
-                    cal_dis = start_idx_temp + 1 - n_samples
+                    cal_dis = start_idx_temp - n_samples
                     while (cal_dis >= 0):
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
@@ -201,7 +212,7 @@ class SWSEL:
 
     def generate_base_classifiers(self):
 
-        for i in range(len(self.x_datasets) - 1):
+        for i in range(len(self.x_datasets)):
             X_maj, X_min = self.x_datasets[i][0], self.x_datasets[i][1]
             X = np.vstack([X_maj, X_min])
             Y = np.concatenate([np.zeros(len(X_maj), dtype=int), np.ones(len(X_min), dtype=int)])
@@ -216,7 +227,7 @@ class SWSEL:
 
         mean_test = np.mean(X_test, axis=0)
         mean_dis = []
-        for i in range(len(self.x_datasets) - 1):
+        for i in range(len(self.x_datasets)):
             mean_train = np.mean(np.concatenate(self.x_datasets[i]))
             mean_dis_temp = np.sum(np.square(mean_test - mean_train))
             mean_dis.append(mean_dis_temp)
@@ -238,7 +249,3 @@ class SWSEL:
         majority_vote = np.round(predictions.mean(axis=0))
 
         return majority_vote
-
-
-# initial pos > 173 - błąd
-# initial pos < 113 - okej
