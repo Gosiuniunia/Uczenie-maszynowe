@@ -19,7 +19,7 @@ from VAO import VAO
 
 file_path = "PCOS_data_without_infertility.xlsx"
 X, y = preprocess_data(file_path)
-rskf = RepeatedStratifiedKFold(n_repeats=5, n_splits=2, random_state=100)
+rskf = RepeatedStratifiedKFold(n_repeats=2, n_splits=5, random_state=100)
 
 def apply_oversampling(method, X_train, y_train, alpha = None):
     if method == "SMOTE":
@@ -44,6 +44,7 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
     gmeans = np.zeros_like(precisions)
 
     for param_idx, M in enumerate(M_list):
+        print(param_idx, M)
         if classifier_name in [SWSEL, BaggingClassifier]:
             clf = classifier_name(estimator=DecisionTreeClassifier(max_depth=1), n_estimators=M)
         else:
@@ -161,16 +162,17 @@ def tune_M_lr_alpha(method_name, classifier_name, M_list, lr_list, alpha_list, o
 
 
 def run_tuning():
-    # M_list = [25, 575, 100]
-    M_list = [50]
-    lr_list = [1]
-    # lr_list = [0.1, 0.5, 1, 10]
-    alpha_list=[0.1 * i for i in range(1, 2)]
-    # alpha_list=[0.1 * i for i in range(1, 10)]
-    step_list = [1]
-    # step_list = [1, 2, 3, 4, 5]
+    M_list = [25, 50, 75, 100]
+    # M_list = [50]
+    # lr_list = [1]
+    lr_list = [0.1, 0.5, 1, 10]
+    # alpha_list=[0.1 * i for i in range(1, 2)]
+    # print(alpha_list)
+    alpha_list=[0.1 * i for i in range(1, 10)]
+    # step_list = [1]
+    step_list = [1, 5, 10, 20]
     # ================================
-    # 1.1 SWESEL (Bez samplingu, M i step size)
+    # 1.1 SWESEL (Bez samplingu, tylko M)
     tune_single_param("SWSEL", SWSEL, M_list, oversampling_type=None)
     
     # ================================

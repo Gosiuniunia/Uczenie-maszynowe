@@ -42,7 +42,7 @@ class SWSEL:
                         dataset = []
                         if (len(majority_pseudo_sequence) - start_idx_temp <= n_samples):
                             "przesuwamy się do momentu aż liczba instancji po prawej będzie większa równa wielkości X_min"
-                            print('a0', start_idx_temp - n_samples)
+                            a_idx = (start_idx_temp - n_samples).astype(int)
                             dataset.append(X_maj[a_idx:])
                             dataset.append(X_min)
                             start_idx_temp -= self.step_size
@@ -99,9 +99,7 @@ class SWSEL:
                             "tworzenie danych do końca datasetu"
                             a_idx = (start_idx_temp - n_samples).astype(int)
                             b_idx = (start_idx_temp + n_samples).astype(int)
-                            print('ab3', start_idx_temp - n_samples, start_idx_temp + n_samples)
                             dataset.append(X_maj[a_idx:b_idx])
-                            print(len(X_maj[a_idx:b_idx]))
                             dataset.append(X_min)
                             start_idx_temp += self.step_size
                             self.x_datasets.append(dataset)
