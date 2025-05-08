@@ -55,6 +55,9 @@ class StrengthenedAdaBoostClassifier:
             return term1*term2
         
     def _upadate_weights(self, omega, alpha_m, y, y_pred):
-        new_omega = omega * np.exp(-alpha_m * y * y_pred)
+        exponent = -alpha_m * y * y_pred
+        exponent = np.clip(exponent, -100, 100)
+        new_omega = omega * np.exp(exponent)
+        new_omega = np.clip(new_omega, 1e-10, None)
         new_omega /= np.sum(new_omega)
         return new_omega
