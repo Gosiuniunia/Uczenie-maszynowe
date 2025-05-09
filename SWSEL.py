@@ -34,14 +34,10 @@ class SWSEL:
             n_samples = window_size / 2
 
             if (start_idx + 1 > len(majority_pseudo_sequence) / 2):
-                "punkt początkowy jest za połową sekwencji"
                 if (len(majority_pseudo_sequence) - start_idx < n_samples):
-                    "punkt początkowy jest bliżej końca niż wielkość połowy okna"
                     while (start_idx_temp - n_samples >= 0):
-                        "dopóki możemy się przesuwać w lewo"
                         dataset = []
                         if (len(majority_pseudo_sequence) - start_idx_temp <= n_samples):
-                            "przesuwamy się do momentu aż liczba instancji po prawej będzie większa równa wielkości X_min"
                             a_idx = (start_idx_temp - n_samples).astype(int)
                             dataset.append(X_maj[a_idx:])
                             dataset.append(X_min)
@@ -59,7 +55,6 @@ class SWSEL:
                 else:
                     cal_dis = len(majority_pseudo_sequence) - start_idx_temp - n_samples
                     while (cal_dis >= 0):
-                        "przesuwamy się w prawo do końca dopóki odl jest równa połowie wielkości okna"
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
                         b_idx = (start_idx_temp + n_samples).astype(int)
@@ -69,9 +64,7 @@ class SWSEL:
                         cal_dis -= self.step_size
                         self.x_datasets.append(dataset)
                     start_idx_temp = start_idx
-                    "cofamy się do pozycji początkowej"
                     while (start_idx_temp - n_samples >= 0):
-                        "przesuwamy się w lewo do końca jeśli krok pozwoli"
                         dataset = []
                         a_idx = (start_idx_temp - n_samples).astype(int)
                         b_idx = (start_idx_temp + n_samples).astype(int)
@@ -81,14 +74,10 @@ class SWSEL:
                         self.x_datasets.append(dataset)
 
             else:
-                "jesli punkt początkowy jest na 1 połowie"
                 if (start_idx + 1 < n_samples):
-                    "jesli po lewo jest mniej niż połowa okna"
                     while (start_idx_temp + n_samples <= len(majority_pseudo_sequence)):
-                        "dopóki można się przesuwać w prawo"
                         dataset = []
                         if (start_idx_temp + 1 <= n_samples):
-                            "tworzenie danych z początku datasetu do momentu aż wielkość od początku będzie równa wielkości okna"
                             a_idx = (start_idx_temp + n_samples).astype(int)
                             dataset.append(X_maj[:a_idx])
                             dataset.append(X_min)
@@ -96,7 +85,6 @@ class SWSEL:
                             self.x_datasets.append(dataset)
                         
                         else:
-                            "tworzenie danych do końca datasetu"
                             a_idx = (start_idx_temp - n_samples).astype(int)
                             b_idx = (start_idx_temp + n_samples).astype(int)
                             dataset.append(X_maj[a_idx:b_idx])
@@ -125,7 +113,6 @@ class SWSEL:
                         start_idx_temp += self.step_size
                         self.x_datasets.append(dataset)
         else:
-            "analogicznie dla nieparzystej liczby danych"
             n_samples = (window_size - 1) / 2
 
             if (start_idx > len(majority_pseudo_sequence) / 2):
