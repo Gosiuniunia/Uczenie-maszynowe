@@ -19,7 +19,7 @@ from VAO import VAO
 
 file_path = "PCOS_data_without_infertility.xlsx"
 X, y = preprocess_data(file_path)
-rskf = RepeatedStratifiedKFold(n_repeats=2, n_splits=5, random_state=100)
+rskf = RepeatedStratifiedKFold(n_repeats=5, n_splits=5, random_state=100)
 
 def apply_oversampling(method, X_train, y_train, alpha = None):
     if method == "SMOTE":
@@ -44,7 +44,6 @@ def tune_single_param(method_name, classifier_name, M_list, oversampling_type=No
     gmeans = np.zeros_like(precisions)
 
     for param_idx, M in enumerate(M_list):
-        print(param_idx, M)
         if classifier_name in [SWSEL, BaggingClassifier]:
             clf = classifier_name(estimator=DecisionTreeClassifier(max_depth=1), n_estimators=M)
         else:
