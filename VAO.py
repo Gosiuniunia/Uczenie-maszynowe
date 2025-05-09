@@ -17,23 +17,24 @@ class VAO:
         self.beta = 1 - alpha
 
     def fit_resample(self, x, y):
-        y = pd.Series(y).reset_index(drop=True)
-        x = pd.DataFrame(x).reset_index(drop=True)
+        if not isinstance(y, pd.Series):
+            y = pd.Series(y)
+        if not isinstance(x, pd.DataFrame):
+            x = pd.DataFrame(x)
+        y = y.reset_index(drop=True)
+        x = x.reset_index(drop=True)
         class_counts = y.value_counts()
-        reverse = False
-        if class_counts.idxmin() == 0:
-            y = y.map({0: 1, 1: 0})
-            class_counts = y.value_counts()
-            reverse = True
-        n_maj = class_counts[0]
-        n_min = class_counts[1]
+        majority_class = class_counts.idxmax()
+        minority_class = class_counts.idxmin()
+        n_maj = class_counts[majority_class]
+        n_min = class_counts[minority_class]
         G = floor(n_maj * self.sampling_strategy - n_min)
-        x_resampled, y_resampled = self.clean_samples(x, y, 1)
-        x, y = self.clean_samples(x_resampled, y_resampled, 0)
+        x_resampled, y_resampled = self.clean_samples(x, y, minority_class)
+        x, y = self.clean_samples(x_resampled, y_resampled, majority_class)
         class_counts = y.value_counts()
-        n_maj = class_counts[0]
-        n_min = class_counts[1]
-        minority_samples = x[y == 1]
+        n_maj = class_counts[majority_class]
+        n_min = class_counts[minority_class]
+        minority_samples = x[y == minority_class]
         self.num_clusters = self.count_cluster_number(minority_samples)
 
         kmeans = KMeans(n_clusters=self.num_clusters, random_state=42)
@@ -41,7 +42,7 @@ class VAO:
 
         cluster_centers = kmeans.cluster_centers_
         samples_per_cluster = [minority_samples[kmeans.labels_ == i] for i in range(self.num_clusters)]
-        majority_samples = x[y == 0]
+        majority_samples = x[y == majority_class]
 
         L_hat = self.count_L_hat(samples_per_cluster, majority_samples)
         S_hat = self.count_S_hat(samples_per_cluster, cluster_centers)
@@ -49,10 +50,8 @@ class VAO:
         new_x = self.generate_samples(samples_per_cluster, cluster_centers, g)
         new_x_df = pd.DataFrame(new_x, columns=x.columns)
         X = pd.concat([x, new_x_df], ignore_index=True)
-        new_y = pd.Series([1] * len(new_x))
+        new_y = pd.Series([minority_class] * len(new_x))
         y = pd.concat([y, new_y], ignore_index=True)
-        if reverse == True:
-            y = y.map({1: 0, 0: 1})
         return X, y
 
     def clean_samples(self, x, y, label_to_clean):
