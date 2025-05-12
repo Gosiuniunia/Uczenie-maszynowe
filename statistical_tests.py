@@ -110,31 +110,30 @@ alpha_list=[0.1 * i for i in range(1, 10)]
 # tables_two_params("SMAB",  M_list, lr_list, "grid")
 # tables_three_params("VASA", alpha_list, M_list, lr_list, "grid")
 
-def compare_models(scores, alpha=0.05, alternative="two-sided"):
-    stat_matrix = np.zeros((scores.shape[0], scores.shape[0]), dtype=bool)
+def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternative="two-sided"):
+    stat_matrix = [[None for _ in range(scores.shape[0])] for _ in range(scores.shape[0])]
     for i in range(scores.shape[0]):
         for j in range(scores.shape[0]):
-            print(f"Comparing sample {i+1} and sample {j+1}:")
-            print(scores[i])
-            print(scores[j])
             t1, p1 = shapiro(scores[i])
             t2, p2 = shapiro(scores[j])
-            print(f"  Shapiro-Wilk p-values: p1 = {p1}, p2 = {p2}")
             if p1 > alpha and p2 > alpha:
                 t, p = ttest_rel(scores[i], scores[j], alternative=alternative)
-                print(f"  Paired t-test p-value: p = {p}")
+                stat_matrix[i][j] = f"t, {p:.4f}"
             else:
                 t, p = wilcoxon(scores[i], scores[j], alternative=alternative)
-                print(f"  Wilcoxon signed-rank test p-value: p = {p}")
-            stat_matrix[i, j] = 1 if p <= alpha else 0
+                stat_matrix[i][j] = f"w, {p:.4f}"
 
-    table = tabulate(stat_matrix)
+    table = tabulate(stat_matrix,
+                    tablefmt=table_style, 
+                    headers=model_names, 
+                    showindex=model_names)
+    
     print("\nSignificance Matrix (1 = significant difference, 0 = no significant difference):")
     print(table)
     return table
 
 #For comparing form .npy file, scores should be extracted from a file
-method_name = "VASA"
+method_name = "rusab"
 metric = "Precision"
 alpha = 0.05
 alternative_hypothesis = "greater"
@@ -142,4 +141,8 @@ scores = np.load(f"wyniki/{method_name.lower()}_{metric.lower()}.npy")
 if method_name == "VASA":
     scores = scores[0]
 
-compare_models(scores)
+vasa_names = [f"M {x}-lr {y}-a {z}" for x in M_list for y in lr_list for z in alpha_list]
+rusab_names = [f"M {x}- lr {y}" for x in M_list for y in lr_list]
+smrf_names = M_list
+
+compare_models(scores, rusab_names, "latex")
