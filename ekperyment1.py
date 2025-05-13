@@ -171,8 +171,8 @@ def run_tuning():
     alpha_list = [round(0.1 * i,1) for i in range(1, 11)]
 
     classifiers = {
-        "SWSEL": SWSEL,
-        "RF": RandomForestClassifier,
+        # "SWSEL": SWSEL,
+        # "RF": RandomForestClassifier,
         "AB": AdaBoostClassifier,
         "SAB": StrengthenedAdaBoostClassifier
     }
@@ -190,7 +190,7 @@ def run_tuning():
 
             else:
                 if clf_class in [AdaBoostClassifier, StrengthenedAdaBoostClassifier]:
-                    tune_M_lr(method_name, clf_class, M_list, lr_list, alpha_list, rskf, X, y, sampling)
+                    tune_M_lr(method_name, clf_class, M_list, lr_list, rskf, X, y, sampling)
                 else:
                     tune_M(method_name, clf_class, M_list, rskf, X, y, sampling)
 run_tuning()
