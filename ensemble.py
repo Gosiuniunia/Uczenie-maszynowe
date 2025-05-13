@@ -14,11 +14,10 @@ class StrengthenedAdaBoostClassifier:
         self.k = 0.2
         self.theta = 0.5
 
-        class_counts = y.value_counts()
+        y = np.where(y == 0, -1, 1)
+        classes, class_counts = np.unique(y, return_counts=True)
         imbalanced_ratio = class_counts.min() / class_counts.max()
         self.b = 1/imbalanced_ratio
-        y = np.where(y == 0, -1, 1)
-
         omega = np.array([1 / self.N for _ in range(self.N)])
         for i in range(self.n_estimators):
             clf = clone(self.estimator)
@@ -38,11 +37,13 @@ class StrengthenedAdaBoostClassifier:
         return np.where(np.sign(final_score) == -1, 0, 1)
 
     def _count_alpha_value(self, y_pred, y, omega):
-        epsilon_m = sum(omega[j] for j in range(self.N) if y_pred[j] != y[j])
+        incorrect = y_pred != y
+        epsilon_m = np.sum(omega[incorrect])
         epsilon_m = max(epsilon_m, 1e-100)
-        Q_m = sum(omega[j] for j in range(self.N) if y[j] == 1)
-        P_m = sum(omega[j] for j in range(self.N) if y[j] == 1 and y_pred[j] == y[j])
-        delta_m = P_m / Q_m
+        positive_mask = y == 1
+        Q_m = np.sum(omega[positive_mask])
+        P_m = np.sum(omega[positive_mask & (y_pred == y)])
+        delta_m = P_m / Q_m if Q_m > 0 else 0.0
         value = 0.5*(1 - (2 * delta_m)/(self.b + 1))
         if epsilon_m < value:
             term1 = 0.5 * np.log((1 - epsilon_m) / epsilon_m)

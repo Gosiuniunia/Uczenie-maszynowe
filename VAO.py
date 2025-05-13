@@ -10,69 +10,67 @@ from xie_beni_index import xie_beni_index
 np.random.seed(100)
 
 class VAO:
-    def __init__(self, sampling_strategy=0.8, k=5, alpha=0.5):
+    def __init__(self, sampling_strategy=0.8, k=5, alpha=0.5, random_state = 100):
         self.sampling_strategy = sampling_strategy
         self.k = k
         self.alpha = alpha
         self.beta = 1 - alpha
+        self.random_state = random_state
+        self.rng = np.random.default_rng(self.random_state)
 
-    def fit_resample(self, x, y):
-        if not isinstance(y, pd.Series):
-            y = pd.Series(y)
-        if not isinstance(x, pd.DataFrame):
-            x = pd.DataFrame(x)
-        y = y.reset_index(drop=True)
-        x = x.reset_index(drop=True)
-        class_counts = y.value_counts()
-        majority_class = class_counts.idxmax()
-        minority_class = class_counts.idxmin()
-        n_maj = class_counts[majority_class]
-        n_min = class_counts[minority_class]
+
+    def fit_resample(self, X, y):
+        classes, counts = np.unique(y, return_counts=True)
+        majority_class = classes[np.argmax(counts)]
+        minority_class = classes[np.argmin(counts)]
+
+        n_maj = counts[np.argmax(counts)]
+        n_min = counts[np.argmin(counts)]
         G = floor(n_maj * self.sampling_strategy - n_min)
-        x_resampled, y_resampled = self.clean_samples(x, y, minority_class)
-        x, y = self.clean_samples(x_resampled, y_resampled, majority_class)
-        class_counts = y.value_counts()
-        n_maj = class_counts[majority_class]
-        n_min = class_counts[minority_class]
-        minority_samples = x[y == minority_class]
-        self.num_clusters = self.count_cluster_number(minority_samples)
 
-        kmeans = KMeans(n_clusters=self.num_clusters, random_state=42)
+        X, y = self._clean_samples(X, y, minority_class)
+        X, y = self._clean_samples(X, y, majority_class)
+
+        minority_samples = X[y == minority_class]
+        majority_samples = X[y == majority_class]
+
+        self.num_clusters = self._count_cluster_number(minority_samples)
+
+        kmeans = KMeans(n_clusters=self.num_clusters, random_state=self.random_state)
         kmeans.fit(minority_samples)
-
         cluster_centers = kmeans.cluster_centers_
+
         samples_per_cluster = [minority_samples[kmeans.labels_ == i] for i in range(self.num_clusters)]
-        majority_samples = x[y == majority_class]
 
-        L_hat = self.count_L_hat(samples_per_cluster, majority_samples)
-        S_hat = self.count_S_hat(samples_per_cluster, cluster_centers)
-        g = self.count_g(G, L_hat, S_hat)
-        new_x = self.generate_samples(samples_per_cluster, cluster_centers, g)
-        new_x_df = pd.DataFrame(new_x, columns=x.columns)
-        X = pd.concat([x, new_x_df], ignore_index=True)
-        new_y = pd.Series([minority_class] * len(new_x))
-        y = pd.concat([y, new_y], ignore_index=True)
-        return X, y
+        L_hat = self._count_L_hat(samples_per_cluster, majority_samples)
+        S_hat = self._count_S_hat(samples_per_cluster, cluster_centers)
+        g = self._count_g(G, L_hat, S_hat)
 
-    def clean_samples(self, x, y, label_to_clean):
+        new_x = self._generate_samples(samples_per_cluster, cluster_centers, g)
+        X_res = np.vstack([X, new_x])
+        y_res = np.concatenate([y, np.full(len(new_x), minority_class)])
+        return X_res, y_res
+
+    def _clean_samples(self, x, y, label_to_clean):
         nneigh = NearestNeighbors(n_neighbors=self.k)
         nneigh.fit(x)
-        maj_class = x[y == (1 - label_to_clean)]
-        indices_maj_class = maj_class.index
-        min_class = x[y == label_to_clean]
+        
+        maj_class_indices = np.where(y != label_to_clean)[0]
+        min_class_indices = np.where(y == label_to_clean)[0]
+
         indices_to_remove = []
-        for idx, x_i in min_class.iterrows():
-            distances, indices = nneigh.kneighbors(x_i.to_frame().T)
-            indices_set = set(indices.flatten())
-            maj_class_set = set(indices_maj_class)
-            if indices_set.issubset(maj_class_set):
+        for idx in min_class_indices:
+            x_i = x[idx].reshape(1, -1)
+            _, indices = nneigh.kneighbors(x_i)
+            if set(indices.flatten()).issubset(set(maj_class_indices)):
                 indices_to_remove.append(idx)
 
-        x_resampled = x.drop(indices_to_remove)
-        y_resampled = y.drop(indices_to_remove)
-        return (x_resampled, y_resampled)
+        keep_mask = np.ones(len(y), dtype=bool)
+        keep_mask[indices_to_remove] = False
+        return x[keep_mask], y[keep_mask]
 
-    def count_cluster_number(self, X, c_min = 2, c_max = 11):
+
+    def _count_cluster_number(self, X, c_min = 2, c_max = 11):
         c_values = list(range(c_min, c_max))
         xb_values = []
         X_T = X.T
@@ -87,7 +85,7 @@ class VAO:
 
         return best_c
 
-    def count_L_hat(self, samples_per_cluster, majority_samples):
+    def _count_L_hat(self, samples_per_cluster, majority_samples):
         xmaj = np.mean(majority_samples, axis=0)
         L_list = []
         for n_cluster in range(self.num_clusters):
@@ -103,20 +101,18 @@ class VAO:
             L_hat.append(Li_hat)
         return L_hat
 
-    def count_S_hat(self, samples_per_cluster, cluster_centers):
+    def _count_S_hat(self, samples_per_cluster, cluster_centers):
         S_list = []
         for i in range(self.num_clusters):
             cluster_samples = samples_per_cluster[i]
             A_i = cluster_centers[i]
-            Si_list = []
-            for index, sample in cluster_samples.iterrows():
-                dot_product = np.dot(sample, A_i)
-                norm_sample = np.linalg.norm(sample)
-                norm_Ai = np.linalg.norm(A_i)
-                S_i = dot_product / (norm_sample * norm_Ai)
-                Si_list.append(S_i)
-            Si_prim = np.mean(Si_list)
-            S_list.append(1 / Si_prim)
+            dot_products = np.dot(cluster_samples, A_i)
+            norms_samples = np.linalg.norm(cluster_samples, axis=1)
+            norm_Ai = np.linalg.norm(A_i)
+            similarities = dot_products / (norms_samples * norm_Ai + 1e-10)
+
+            Si_prim = np.mean(similarities)
+            S_list.append(1 / (Si_prim + 1e-10))
 
         Si_max = max(S_list)
         Si_min = min(S_list)
@@ -126,32 +122,33 @@ class VAO:
             S_hat.append(Si_hat)
         return S_hat
 
-    def count_g(self, G, L_hat, S_hat):
+    def _count_g(self, G, L_hat, S_hat):
         W = [0 for i in range(self.num_clusters)]
         for i in range(self.num_clusters):
             W[i] = self.alpha * L_hat[i] + self.beta * S_hat[i]
 
-        W_sum = sum(W)
+        W_sum = np.sum(W)
         W_hat = [wi / W_sum for wi in W]
         g = [G * wi_hat for wi_hat in W_hat]
         return g
 
-    def generate_samples(self, samples_per_cluster, cluster_centers, g):
+    def _generate_samples(self, samples_per_cluster, cluster_centers, g):
         new_samples = []
         for i in range(self.num_clusters):
             cluster_samples = samples_per_cluster[i]
             A_i = cluster_centers[i]
             for _ in range(floor(g[i])):
-                x_ij = cluster_samples.sample(n=1).values.flatten()
+                idx_ij, idx_il, idx_is = np.random.choice(len(cluster_samples), 3)
 
-                # Losowy wybór dwóch sąsiednich próbek
-                x_il = cluster_samples.sample(n=1).values.flatten()
-                x_is = cluster_samples.sample(n=1).values.flatten()
+                x_ij = cluster_samples[idx_ij]
+                x_il = cluster_samples[idx_il]
+                x_is = cluster_samples[idx_is]
 
-                t_k_ip1 = x_ij + rand() * (x_il - x_ij)
-                t_k_ip2 = x_ij + rand() * (x_is - x_ij)
+                t_k_ip1 = x_ij + self.rng.random() * (x_il - x_ij)
+                t_k_ip2 = x_ij + self.rng.random() * (x_is - x_ij)
 
-                t_k_ip = t_k_ip1 + np.random.rand() * (t_k_ip2 - t_k_ip1)
-                y_k_ip = A_i + np.random.rand() * (t_k_ip - A_i)
+                t_k_ip = t_k_ip1 + self.rng.random() * (t_k_ip2 - t_k_ip1)
+                y_k_ip = A_i + self.rng.random() * (t_k_ip - A_i)
+                
                 new_samples.append(y_k_ip)
         return new_samples

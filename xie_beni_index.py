@@ -3,7 +3,7 @@ import numpy as np
 def xie_beni_index(X, U, centroids, m=2):
     n = X.shape[0]
     C = centroids.shape[0]
-    numerator = np.sum((U ** m) * np.linalg.norm(X.to_numpy()[:, None] - centroids, axis=2).T ** 2)
+    numerator = np.sum((U ** m) * np.linalg.norm(X[:, None] - centroids, axis=2).T ** 2)
     min_dist = np.inf
     for i in range(C):
         for j in range(C):
