@@ -1,11 +1,9 @@
-import pandas as pd
 from math import floor
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 import numpy as np
-from numpy.random import rand
 import skfuzzy as fuzz
-from xie_beni_index import xie_beni_index
+from algorithms.xie_beni_index import xie_beni_index
 
 np.random.seed(100)
 
