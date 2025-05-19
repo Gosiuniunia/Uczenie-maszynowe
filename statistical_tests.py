@@ -1,5 +1,6 @@
 import numpy as np
 from tabulate import tabulate
+import pandas as pd
 
 from scipy.stats import shapiro, ttest_rel, wilcoxon
 
@@ -9,7 +10,6 @@ def generate_model_names(classifier_name, oversampling_name):
     lr_list = [0.1, 0.5, 1, 10]
     alpha_list = [round(0.1 * i,1) for i in range(1, 11)]
 
-    # A list of the parameters permutation - models names, used as column headers.
     if oversampling_name.lower() == "vao":
         if classifier_name.lower() == "ab" or classifier_name.lower() == "sab":
             model_names =  [f"{x}-{y}-{z}" for x in M_list for y in lr_list for z in alpha_list]
@@ -22,6 +22,43 @@ def generate_model_names(classifier_name, oversampling_name):
             model_names = M_list
 
     return model_names
+
+def generate_dataframe(model_names, scores):
+    first_parts = model_names[0].split("-")
+    num_parts = len(first_parts)
+
+    M_vals, lr_vals, alpha_vals = [], [], []
+    ordered_cols = ["M"]
+
+    for name in model_names:
+        parts = name.split("-")
+        M_vals.append(int(parts[0]))
+
+        if num_parts >= 2:
+            lr_vals.append(float(parts[1]))
+        if num_parts == 3:
+            alpha_vals.append(float(parts[2]))
+
+    data = {
+        "M": M_vals,
+        "Precision": scores[0],
+        "Recall": scores[1],
+        "F1": scores[2],
+        "Gmean": scores[3]
+    }
+
+    if num_parts >= 2:
+        data["lr"] = lr_vals
+        ordered_cols.append("lr")
+    if num_parts == 3:
+        data["alpha"] = alpha_vals
+        ordered_cols.append("alpha")
+
+    df = pd.DataFrame(data)
+    metric_cols = [col for col in df.columns if col not in ordered_cols]
+    df = df[ordered_cols + metric_cols]
+
+    return df
 
 def print_scores(classifier_name, oversampling_name, rounding=None, table_style="grid", T=False):
     
@@ -68,8 +105,14 @@ def print_scores(classifier_name, oversampling_name, rounding=None, table_style=
         table_latex = table[:-13] + f"\caption{{Scores for {classifier_name} classifier with {oversampling_name} oversampling}}\n" + table[-13:]
         print(table_latex, "\n")
 
+    df = generate_dataframe(model_names, mean_scores)
+    return df
 
-# print_scores("ab", "vao", rounding=3, T=True)
+df = print_scores("ab", "none", rounding=3, T=True)
+# print(df)
+# precision_pivot = df.groupby(['M', 'alpha'])['Precision'].mean().reset_index()
+# precision_matrix = precision_pivot.pivot(index="M", columns="alpha", values="Precision")
+# print(precision_matrix)
 
 def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternative="two-sided"):
     stat_matrix = [[None for _ in range(scores.shape[0])] for _ in range(scores.shape[0])]
@@ -99,11 +142,9 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
         table_latex = table[:-13] + f"\caption{{Matrix of p-values from paired statistical tests between models}}\n" + table[-13:]
         print(table_latex)
 
-#For comparing form .npy file, scores should be extracted from a file
-
-classifier_name = 'ab'
-oversampling_name = 'none'
-metric_name = "precision"
-scores = np.load(f"wyniki/{classifier_name.lower()}_{oversampling_name.lower()}_{metric_name}.npy")
-model_names = generate_model_names(classifier_name, oversampling_name)
-compare_models(scores, model_names, "latex")
+# classifier_name = 'ab'
+# oversampling_name = 'none'
+# metric_name = "precision"
+# scores = np.load(f"wyniki/{classifier_name.lower()}_{oversampling_name.lower()}_{metric_name}.npy")
+# model_names = generate_model_names(classifier_name, oversampling_name)
+# compare_models(scores, model_names, "latex")
