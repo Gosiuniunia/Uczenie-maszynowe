@@ -99,20 +99,17 @@ def print_scores(classifier_name, oversampling_name, rounding=None, table_style=
         )
 
     if table_style == "grid":
-        print(f"\n", f"Scores for {classifier_name} classifiers with {oversampling_name} oversampling")
+        print(f"\n", f"Wyniki klasyfikatorów {classifier_name} z samplingiem {oversampling_name}")
         print(table)
     else:
-        table_latex = table[:-13] + f"\caption{{Scores for {classifier_name} classifier with {oversampling_name} oversampling}}\n" + table[-13:]
+        table_latex = "\\begin{table}[H]\n\centering"+ table + f"\n\caption{{Wyniki klasyfikatorów {classifier_name} z samplingiem {oversampling_name}}}\n\end{{table}}\n"
         print(table_latex, "\n")
+        return table_latex
 
-    df = generate_dataframe(model_names, mean_scores)
-    return df
+    df_mean = generate_dataframe(model_names, mean_scores)
+    df_std = generate_dataframe(model_names, std_scores)
+    return df_mean, df_std
 
-df = print_scores("ab", "none", rounding=3, T=True)
-# print(df)
-# precision_pivot = df.groupby(['M', 'alpha'])['Precision'].mean().reset_index()
-# precision_matrix = precision_pivot.pivot(index="M", columns="alpha", values="Precision")
-# print(precision_matrix)
 
 def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternative="two-sided"):
     stat_matrix = [[None for _ in range(scores.shape[0])] for _ in range(scores.shape[0])]
@@ -125,10 +122,10 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
             t2, p2 = shapiro(scores[j])
             if p1 > alpha and p2 > alpha:
                 t, p = ttest_rel(scores[i], scores[j], alternative=alternative)
-                stat_matrix[i][j] = f"t, {p:.4f}"
+                stat_matrix[i][j] = f"t, {p:.3f}"
             else:
                 t, p = wilcoxon(scores[i], scores[j], alternative=alternative)
-                stat_matrix[i][j] = f"w, {p:.4f}"
+                stat_matrix[i][j] = f"w, {p:.3f}"
 
     table = tabulate(stat_matrix,
                     tablefmt=table_style, 
@@ -136,15 +133,43 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
                     showindex=model_names)
     
     if table_style == "grid":
-        print("\n Matrix of p-values from paired statistical tests between models")
+        print("\n Macierz wartości p dla testów statystycznych parami między modelami")
         print(table)
     else:
-        table_latex = table[:-13] + f"\caption{{Matrix of p-values from paired statistical tests between models}}\n" + table[-13:]
+        table_latex = "\\begin{table}[H]\n\centering"+ table + "\caption{Macierz wartości p dla testów statystycznych parami między modelami}\n\end{table}\n"
         print(table_latex)
+        return table_latex
 
-# classifier_name = 'ab'
-# oversampling_name = 'none'
-# metric_name = "precision"
-# scores = np.load(f"wyniki/{classifier_name.lower()}_{oversampling_name.lower()}_{metric_name}.npy")
-# model_names = generate_model_names(classifier_name, oversampling_name)
-# compare_models(scores, model_names, "latex")
+classifiers = ["SWSEL", "RF", "AB", "SAB"]
+oversamplings = ["NONE", "SMOTE", "RUS", "VAO"]
+file = "tables.txt"
+
+# with open(file, "w", encoding="utf-8") as f:
+#     for clf in classifiers:
+#         f.write(f"\subsection{{Wyniki dla klasyfikatora {clf} dla różnych over-samplingów}}")
+#         for over in oversamplings:
+#             result = print_scores(clf, over, rounding=3, table_style="latex", T=True)
+#             f.write(result)
+#             f.write("\n\n")
+
+data = {}
+best_params_num = [1, 1, 1, 6, 2, 1, 1, 12, 8, 8, 4, 40, 4, 0, 8, 64]
+i = 0
+for clf in classifiers:
+    for over in oversamplings:
+        pre_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_precision.npy")[best_params_num[i]]
+        rec_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_recall.npy")[best_params_num[i]]
+        f1_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_f1_score.npy")[best_params_num[i]]
+        gm_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_g-mean.npy")[best_params_num[i]]
+
+        scr = {"Precision":pre_scores, "Recall":rec_scores, "F1 score":f1_scores, "G-mean":gm_scores}
+        data[f"{clf}_{over}"] = scr
+        i += 1
+
+metric = "Precision"
+model_names = list(data.keys())
+scores = np.array([data[key][metric] for key in data])
+
+file = "compare.txt"
+# with open(file, "w", encoding="utf-8") as f:
+#     f.write(compare_models(scores, model_names,table_style="latex", alternative="greater"))
