@@ -1,6 +1,7 @@
 import numpy as np
 from tabulate import tabulate
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from scipy.stats import shapiro, ttest_rel, wilcoxon
 
@@ -116,16 +117,16 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
     for i in range(scores.shape[0]):
         for j in range(scores.shape[0]):
             if i == j: #comparison with oneself is omitted
-                stat_matrix[i][j] = "nan"
+                stat_matrix[i][j] = "-"
                 continue
             t1, p1 = shapiro(scores[i])
             t2, p2 = shapiro(scores[j])
             if p1 > alpha and p2 > alpha:
                 t, p = ttest_rel(scores[i], scores[j], alternative=alternative)
-                stat_matrix[i][j] = f"t, {p:.3f}"
+                stat_matrix[i][j] = f"t, {p:.4f}"
             else:
                 t, p = wilcoxon(scores[i], scores[j], alternative=alternative)
-                stat_matrix[i][j] = f"w, {p:.3f}"
+                stat_matrix[i][j] = f"w, {p:.4f}"
 
     table = tabulate(stat_matrix,
                     tablefmt=table_style, 
@@ -144,6 +145,7 @@ classifiers = ["SWSEL", "RF", "AB", "SAB"]
 oversamplings = ["NONE", "SMOTE", "RUS", "VAO"]
 file = "tables.txt"
 
+# Table generation
 # with open(file, "w", encoding="utf-8") as f:
 #     for clf in classifiers:
 #         f.write(f"\subsection{{Wyniki dla klasyfikatora {clf} dla różnych over-samplingów}}")
@@ -153,7 +155,7 @@ file = "tables.txt"
 #             f.write("\n\n")
 
 data = {}
-best_params_num = [1, 1, 1, 6, 2, 1, 1, 12, 8, 8, 4, 40, 4, 0, 8, 64]
+best_params_num = [0, 0, 0, 6, 2, 1, 1, 12, 8, 8, 4, 40, 0, 0, 8, 64]
 i = 0
 for clf in classifiers:
     for over in oversamplings:
@@ -166,10 +168,99 @@ for clf in classifiers:
         data[f"{clf}_{over}"] = scr
         i += 1
 
-metric = "Precision"
-model_names = list(data.keys())
-scores = np.array([data[key][metric] for key in data])
-
 file = "compare.txt"
+
+# Test grouped by classificator
+# part_data = [[], [], [], []]
+# i = 0
+# for part in classifiers:
+#     for key, value in data.items():
+#         if part == "AB":
+#             if part in key and "SAB" not in key:
+#                 part_data[i].extend(value["Precision"])
+#         else:
+#             if part in key:
+#                 part_data[i].extend(value["Precision"])
+
+#     i += 1
+
+# Test grouped by oversampling
+# part_data = [[], [], [], []]
+# i = 0
+# for part in oversamplings:
+#     for key, value in data.items():
+#         if part in key:
+#             part_data[i].extend(value["Precision"])
+#     i += 1
+
 # with open(file, "w", encoding="utf-8") as f:
-#     f.write(compare_models(scores, model_names,table_style="latex", alternative="greater"))
+    # f.write(compare_models(np.array(part_data), oversamplings, table_style="latex", alternative="greater"))
+
+
+# Test for all combinations
+# metric = "Precision"
+# model_names = list(data.keys())
+# scores = np.array([data[key][metric] for key in data])
+
+# with open(file, "w", encoding="utf-8") as f:
+#     f.write(compare_models(scores, model_names, table_style="latex", alternative="greater"))
+
+# AB and SAB hyperparamethers testing visualization without VAO
+# fig, ax = plt.subplots(1, 3, figsize=(15, 4))
+
+# i = 0
+# for over in oversamplings[:3]:
+#     df_ab, _ = print_scores("AB", over, rounding=3)
+#     df_sab, _ = print_scores("SAB", over, rounding=3)
+#     labels = generate_model_names("AB", over)
+#     colors = ['orchid', 'teal']
+#     ax[i].plot(labels, list(df_ab["Precision"]), colors[0], label="AB")
+#     ax[i].plot(labels, list(df_sab["Precision"]), colors[1], label="SAB")
+#     ax[i].legend(title='Klasyfikator')
+#     ax[i].set_title(f'{over}')
+#     ax[i].set_xticklabels(labels, rotation=90)
+#     i += 1
+
+# VAO visualization
+# fig, ax = plt.subplots(figsize=(30, 4))
+# df_ab, _ = print_scores("AB", "VAO", rounding=3)
+# df_sab, _ = print_scores("SAB", "VAO", rounding=3)
+# labels = generate_model_names("AB", "VAO")
+# colors = ['orchid', 'teal']
+# ax.plot(labels, list(df_ab["Precision"]), colors[0], label="AB")
+# ax.plot(labels, list(df_sab["Precision"]), colors[1], label="SAB")
+# ax.legend(title='Klasyfikator')
+# ax.set_title(f'{over}')
+# ax.set_xticklabels(labels, rotation=90)
+
+# All combination's metrics visualization
+# labels = list(data.keys())
+# metrics = ['Precision', 'Recall', 'F1 score', 'G-mean']
+# n_metrics = len(metrics)
+# n_labels = len(labels)
+# colors = ['orchid', 'mediumpurple', 'skyblue', 'teal']
+
+# averaged_data = {}
+# for key, metric_values in data.items():
+#     averaged_data[key] = {metric: np.mean(values) for metric, values in metric_values.items()}
+
+# df_avg = pd.DataFrame.from_dict(averaged_data, orient='index')
+# fig, ax = plt.subplots(figsize=(8, 12))
+# height = 0.15
+
+# y = np.arange(n_labels)
+
+# for i, metric in enumerate(metrics):
+#     offset = height * (i - (n_metrics - 1) / 2) 
+#     ax.barh(y + offset, df_avg[metric], height, label=metric, color=colors[i % len(colors)])
+
+# ax.set_xlabel('Uśredniona Wartość Metryki')
+# ax.set_yticks(y)
+# ax.set_yticklabels(labels)
+# ax.legend(title='Metryka')
+# ax.grid(axis='x', linestyle='--', alpha=0.7)
+# plt.tight_layout()
+
+# plt.savefig('vao.jpg', dpi=300, bbox_inches='tight')
+
+# plt.show()
