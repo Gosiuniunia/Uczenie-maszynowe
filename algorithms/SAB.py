@@ -2,17 +2,18 @@ import numpy as np
 from sklearn.base import clone
 
 class StrengthenedAdaBoostClassifier:
-    def __init__(self, n_estimators, estimator, learning_rate = 1.0):
+    def __init__(self, n_estimators, estimator, learning_rate = 1.0, k = 0.07, theta = 0.7):
         self.n_estimators = n_estimators
         self.estimator = estimator
         self.learning_rate = learning_rate
         self.classifiers = []
         self.alphas = []
+        self.k = k
+        self.theta = theta
 
     def fit(self, X, y):
         self.N = len(X)
-        self.k = 0.2
-        self.theta = 0.5
+
 
         y = np.where(y == 0, -1, 1)
         classes, class_counts = np.unique(y, return_counts=True)
