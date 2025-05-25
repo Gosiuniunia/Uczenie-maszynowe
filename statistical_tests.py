@@ -116,7 +116,7 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
     stat_matrix = [[None for _ in range(scores.shape[0])] for _ in range(scores.shape[0])]
     for i in range(scores.shape[0]):
         for j in range(scores.shape[0]):
-            if i == j: #comparison with oneself is omitted
+            if i <= j: #comparison with oneself and double testing is omitted
                 stat_matrix[i][j] = "-"
                 continue
             t1, p1 = shapiro(scores[i])
@@ -141,9 +141,9 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
         print(table_latex)
         return table_latex
 
-classifiers = ["SWSEL", "RF", "AB", "SAB"]
-oversamplings = ["NONE", "SMOTE", "RUS", "VAO"]
-file = "tables.txt"
+# classifiers = ["SWSEL", "RF", "AB", "SAB"]
+# oversamplings = ["NONE", "SMOTE", "RUS", "VAO"]
+# file = "tables.txt"
 
 # Table generation
 # with open(file, "w", encoding="utf-8") as f:
@@ -154,21 +154,21 @@ file = "tables.txt"
 #             f.write(result)
 #             f.write("\n\n")
 
-data = {}
-best_params_num = [0, 0, 0, 6, 2, 1, 1, 12, 8, 8, 4, 40, 0, 0, 8, 64]
-i = 0
-for clf in classifiers:
-    for over in oversamplings:
-        pre_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_precision.npy")[best_params_num[i]]
-        rec_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_recall.npy")[best_params_num[i]]
-        f1_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_f1_score.npy")[best_params_num[i]]
-        gm_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_g-mean.npy")[best_params_num[i]]
+# data = {}
+# best_params_num = [0, 0, 0, 6, 2, 1, 1, 12, 8, 8, 4, 40, 0, 0, 8, 64]
+# i = 0
+# for clf in classifiers:
+#     for over in oversamplings:
+#         pre_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_precision.npy")[best_params_num[i]]
+#         rec_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_recall.npy")[best_params_num[i]]
+#         f1_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_f1_score.npy")[best_params_num[i]]
+#         gm_scores = np.load(f"wyniki/{clf.lower()}_{over.lower()}_g-mean.npy")[best_params_num[i]]
 
-        scr = {"Precision":pre_scores, "Recall":rec_scores, "F1 score":f1_scores, "G-mean":gm_scores}
-        data[f"{clf}_{over}"] = scr
-        i += 1
+#         scr = {"Precision":pre_scores, "Recall":rec_scores, "F1 score":f1_scores, "G-mean":gm_scores}
+#         data[f"{clf}_{over}"] = scr
+#         i += 1
 
-file = "compare.txt"
+# file = "compare.txt"
 
 # Test grouped by classificator
 # part_data = [[], [], [], []]
@@ -184,6 +184,10 @@ file = "compare.txt"
 
 #     i += 1
 
+# with open(file, "w", encoding="utf-8") as f:
+    # f.write(compare_models(np.array(part_data), classifiers, table_style="latex", alternative="greater"))
+
+
 # Test grouped by oversampling
 # part_data = [[], [], [], []]
 # i = 0
@@ -194,16 +198,18 @@ file = "compare.txt"
 #     i += 1
 
 # with open(file, "w", encoding="utf-8") as f:
-    # f.write(compare_models(np.array(part_data), oversamplings, table_style="latex", alternative="greater"))
+#     f.write(compare_models(np.array(part_data), oversamplings, table_style="latex", alternative="greater"))
 
 
 # Test for all combinations
 # metric = "Precision"
-# model_names = list(data.keys())
+# model_names = [key for key in data.keys()]
+# model_names = [key for key in data.keys() if "SWSEL" in key]
 # scores = np.array([data[key][metric] for key in data])
+# scores = np.array([data[key][metric] for key in data if "SWSEL" in key])
 
 # with open(file, "w", encoding="utf-8") as f:
-#     f.write(compare_models(scores, model_names, table_style="latex", alternative="greater"))
+    # f.write(compare_models(scores, model_names, table_style="latex"))
 
 # AB and SAB hyperparamethers testing visualization without VAO
 # fig, ax = plt.subplots(1, 3, figsize=(15, 4))
@@ -222,6 +228,7 @@ file = "compare.txt"
 #     i += 1
 
 # VAO visualization
+# file = "vao.jpg"
 # fig, ax = plt.subplots(figsize=(30, 4))
 # df_ab, _ = print_scores("AB", "VAO", rounding=3)
 # df_sab, _ = print_scores("SAB", "VAO", rounding=3)
@@ -234,6 +241,7 @@ file = "compare.txt"
 # ax.set_xticklabels(labels, rotation=90)
 
 # All combination's metrics visualization
+# file = "metrics.jpg"
 # labels = list(data.keys())
 # metrics = ['Precision', 'Recall', 'F1 score', 'G-mean']
 # n_metrics = len(metrics)
@@ -245,22 +253,25 @@ file = "compare.txt"
 #     averaged_data[key] = {metric: np.mean(values) for metric, values in metric_values.items()}
 
 # df_avg = pd.DataFrame.from_dict(averaged_data, orient='index')
-# fig, ax = plt.subplots(figsize=(8, 12))
-# height = 0.15
 
-# y = np.arange(n_labels)
+# fig, ax = plt.subplots(figsize=(16, 6)) 
+
+# width = 0.15 
+
+# x = np.arange(n_labels) 
 
 # for i, metric in enumerate(metrics):
-#     offset = height * (i - (n_metrics - 1) / 2) 
-#     ax.barh(y + offset, df_avg[metric], height, label=metric, color=colors[i % len(colors)])
+#     offset = width * (i - (n_metrics - 1) / 2)
+#     ax.bar(x + offset, df_avg[metric], width, label=metric, color=colors[i % len(colors)])
 
-# ax.set_xlabel('Uśredniona Wartość Metryki')
-# ax.set_yticks(y)
-# ax.set_yticklabels(labels)
-# ax.legend(title='Metryka')
-# ax.grid(axis='x', linestyle='--', alpha=0.7)
+# ax.set_ylabel('Uśredniona Wartość Metryki')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels, rotation=45, ha='right') 
+# ax.legend(title='Metryka', loc='lower right')
+# ax.grid(axis='y', linestyle='--', alpha=0.7)
 # plt.tight_layout()
 
-# plt.savefig('vao.jpg', dpi=300, bbox_inches='tight')
+
+# plt.savefig(file, dpi=300, bbox_inches='tight')
 
 # plt.show()
