@@ -185,7 +185,7 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
 #     i += 1
 
 # with open(file, "w", encoding="utf-8") as f:
-    # f.write(compare_models(np.array(part_data), classifiers, table_style="latex", alternative="greater"))
+#     f.write(compare_models(np.array(part_data)[:3], classifiers[:3], table_style="latex", alternative="greater"))
 
 
 # Test grouped by oversampling
@@ -198,7 +198,7 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
 #     i += 1
 
 # with open(file, "w", encoding="utf-8") as f:
-#     f.write(compare_models(np.array(part_data), oversamplings, table_style="latex", alternative="greater"))
+#     f.write(compare_models(np.array(part_data), oversamplings, table_style="latex"))
 
 
 # Test for all combinations
