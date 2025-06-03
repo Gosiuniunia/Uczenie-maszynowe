@@ -193,20 +193,22 @@ def compare_models(scores, model_names, table_style="grid", alpha=0.05, alternat
 # i = 0
 # for part in oversamplings:
 #     for key, value in data.items():
-#         if part in key:
+#         if part in key and "SAB" not in key:
+#             print(key)
 #             part_data[i].extend(value["Precision"])
 #     i += 1
 
+# print(len(part_data[0]))
 # with open(file, "w", encoding="utf-8") as f:
-#     f.write(compare_models(np.array(part_data), oversamplings, table_style="latex"))
+    # f.write(compare_models(np.array(part_data), oversamplings, table_style="latex", alternative="greater"))
 
 
 # Test for all combinations
 # metric = "Precision"
 # model_names = [key for key in data.keys()]
-# model_names = [key for key in data.keys() if "SWSEL" in key]
+# model_names = [key for key in data.keys() if "SWSEL" not in key]
 # scores = np.array([data[key][metric] for key in data])
-# scores = np.array([data[key][metric] for key in data if "SWSEL" in key])
+# scores = np.array([data[key][metric] for key in data if "SWSEL" not in key])
 
 # with open(file, "w", encoding="utf-8") as f:
     # f.write(compare_models(scores, model_names, table_style="latex"))
